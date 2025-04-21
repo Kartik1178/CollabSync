@@ -1,217 +1,125 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { FileCode, Plus, Users } from "lucide-react"
-import { DashboardHeader } from "@/components/dashboard-header"
-import { ProjectCard } from "@/components/project-card"
-import { EmptyState } from "@/components/empty-state"
+import { Plus } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import NewProjectPage from "../projects/new/page"
 
-// Sample project data
+// Sample data for projects and invites
 const sampleProjects = [
-  {
-    id: "1",
-    title: "E-Commerce Platform",
-    description: "A modern e-commerce platform with React and Node.js",
-    tags: ["React", "Node.js", "MongoDB"],
-    members: 4,
-    lastUpdated: "2 days ago",
-    isOwner: true,
-  },
-  {
-    id: "2",
-    title: "Task Management App",
-    description: "A collaborative task management application",
-    tags: ["TypeScript", "Next.js", "Prisma"],
-    members: 2,
-    lastUpdated: "5 hours ago",
-    isOwner: true,
-  },
-  {
-    id: "3",
-    title: "Weather Dashboard",
-    description: "Real-time weather dashboard with data visualization",
-    tags: ["React", "D3.js", "API"],
-    members: 3,
-    lastUpdated: "1 week ago",
-    isOwner: false,
-  },
+  { id: "1", title: "E-Commerce Platform", description: "A React & Node app", tags: ["React", "Node.js"], members: 4, lastUpdated: "2 days ago", isOwner: true },
+  { id: "2", title: "Task App", description: "Collab task manager", tags: ["TypeScript", "Next.js"], members: 2, lastUpdated: "5 hours ago", isOwner: true },
+  { id: "3", title: "Weather Dashboard", description: "Real-time weather", tags: ["React", "D3.js"], members: 3, lastUpdated: "1 week ago", isOwner: false },
 ]
 
-// Sample collaboration invites
 const sampleInvites = [
-  {
-    id: "1",
-    projectTitle: "AI Image Generator",
-    from: "Sarah Johnson",
-    date: "1 day ago",
-  },
-  {
-    id: "2",
-    projectTitle: "Blockchain Explorer",
-    from: "Michael Chen",
-    date: "3 days ago",
-  },
+  { id: "1", projectTitle: "AI Image Generator", from: "Sarah", date: "1 day ago" },
+  { id: "2", projectTitle: "Blockchain Explorer", from: "Mike", date: "3 days ago" },
 ]
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<{ name: string; email: string } | null>(null)
-  const [myProjects, setMyProjects] = useState(sampleProjects.filter((p) => p.isOwner))
-  const [collaborations, setCollaborations] = useState(sampleProjects.filter((p) => !p.isOwner))
   const [invites, setInvites] = useState(sampleInvites)
-  const router = useRouter()
+  const [myProjects, setMyProjects] = useState(sampleProjects.filter(p => p.isOwner))
+  const [collaborations, setCollaborations] = useState(sampleProjects.filter(p => !p.isOwner))
+  const [activeTab, setActiveTab] = useState("my-projects")
+  const [showNewProjectForm, setShowNewProjectForm] = useState(false)
 
-  useEffect(() => {
-    // Check if user is logged in
-    const storedUser = localStorage.getItem("user")
-    if (!storedUser) {
-      router.push("/login")
-      return
-    }
-
-    setUser(JSON.parse(storedUser))
-  }, [router])
-
-  const handleAcceptInvite = (inviteId: string) => {
-    // In a real app, you would make an API call to accept the invite
-    // For demo purposes, we'll just remove it from the list
-    setInvites(invites.filter((invite) => invite.id !== inviteId))
-  }
-
-  const handleDeclineInvite = (inviteId: string) => {
-    // In a real app, you would make an API call to decline the invite
-    // For demo purposes, we'll just remove it from the list
-    setInvites(invites.filter((invite) => invite.id !== inviteId))
-  }
-
-  if (!user) {
-    return null // Loading state or redirect handled by useEffect
-  }
+  // Handle Invite Accept/Decline
+  const handleAcceptInvite = (id: string) => setInvites(invites.filter(i => i.id !== id))
+  const handleDeclineInvite = (id: string) => setInvites(invites.filter(i => i.id !== id))
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#0a0a0a] cyber-grid">
-      <DashboardHeader user={user} />
+    <div className="min-h-screen bg-[#0a0a0a] p-6">
+      {/* Header */}
+      <div className="flex justify-between mb-6">
+        <h1 className="text-3xl font-bold gradient-text">Dashboard</h1>
+        <Button className="bg-primary" size="sm" onClick={() => setShowNewProjectForm(true)}>
+          <Plus className="mr-2 h-4 w-4" /> New Project
+        </Button>
+      </div>
 
-      <main className="flex-1 container py-6">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold gradient-text">Dashboard</h1>
-          <Link href="/projects/new">
-            <Button className="bg-primary hover:bg-primary/80 glow">
-              <Plus className="mr-2 h-4 w-4" />
-              New Project
-            </Button>
-          </Link>
-        </div>
-
-        {invites.length > 0 && (
-          <Card className="mb-6 border-[#2a2a2a] bg-[#121212]">
-            <CardHeader className="border-b border-[#2a2a2a]">
-              <CardTitle className="text-primary">Collaboration Invites</CardTitle>
-              <CardDescription className="text-gray-400">
-                You have {invites.length} pending invitation{invites.length > 1 ? "s" : ""}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4 pt-4">
-                {invites.map((invite) => (
-                  <div
-                    key={invite.id}
-                    className="flex items-center justify-between border-b border-[#2a2a2a] pb-4 last:border-0 last:pb-0"
-                  >
-                    <div>
-                      <p className="font-medium text-gray-200">{invite.projectTitle}</p>
-                      <p className="text-sm text-gray-400">
-                        From {invite.from} • {invite.date}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        className="bg-primary hover:bg-primary/80 glow-secondary"
-                        onClick={() => handleAcceptInvite(invite.id)}
-                      >
-                        Accept
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="border-[#2a2a2a] hover:bg-[#1a1a1a] hover:text-gray-200"
-                        onClick={() => handleDeclineInvite(invite.id)}
-                      >
-                        Decline
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        <Tabs defaultValue="my-projects">
-          <TabsList className="mb-4 bg-[#121212] border border-[#2a2a2a] p-1">
-            <TabsTrigger value="my-projects" className="data-[state=active]:bg-primary data-[state=active]:text-white">
-              My Projects
-            </TabsTrigger>
-            <TabsTrigger
-              value="collaborations"
-              className="data-[state=active]:bg-secondary data-[state=active]:text-white"
+      {/* Conditional rendering using ternary operator */}
+      {showNewProjectForm ? (
+        <div className="flex justify-center">
+          <div className="w-full max-w-2xl">
+            <NewProjectPage />
+            <Button
+              variant="outline"
+              className="mt-4"
+              onClick={() => setShowNewProjectForm(false)}
             >
-              Collaborations
-            </TabsTrigger>
-          </TabsList>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Invites */}
+          {invites.length > 0 && (
+            <div className="mb-6 border border-[#2a2a2a] bg-[#121212] p-4 rounded">
+              <h2 className="text-primary mb-2">Collaboration Invites ({invites.length})</h2>
+              {invites.map(inv => (
+                <div key={inv.id} className="flex justify-between items-center mb-2 border-b border-[#2a2a2a] pb-2 last:border-0 last:pb-0">
+                  <div>
+                    <p className="font-medium">{inv.projectTitle}</p>
+                    <p className="text-sm text-gray-400">From {inv.from} • {inv.date}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" className="bg-green-600" onClick={() => handleAcceptInvite(inv.id)}>Accept</Button>
+                    <Button size="sm" variant="outline" className="border-[#2a2a2a]" onClick={() => handleDeclineInvite(inv.id)}>Decline</Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
-          <TabsContent value="my-projects">
-            {myProjects.length > 0 ? (
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {myProjects.map((project) => (
-                  <ProjectCard key={project.id} project={project} />
-                ))}
-              </div>
-            ) : (
-              <EmptyState
-                icon={<FileCode className="h-10 w-10 text-primary" />}
-                title="No projects yet"
-                description="Create your first project to get started"
-                action={
-                  <Link href="/projects/new">
-                    <Button className="bg-primary hover:bg-primary/80 glow">
-                      <Plus className="mr-2 h-4 w-4" />
-                      New Project
-                    </Button>
-                  </Link>
-                }
-              />
-            )}
-          </TabsContent>
-
-          <TabsContent value="collaborations">
-            {collaborations.length > 0 ? (
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {collaborations.map((project) => (
-                  <ProjectCard key={project.id} project={project} />
-                ))}
-              </div>
-            ) : (
-              <EmptyState
-                icon={<Users className="h-10 w-10 text-secondary" />}
-                title="No collaborations yet"
-                description="Join projects or accept invitations to collaborate"
-                action={
-                  <Link href="/explore">
-                    <Button className="bg-secondary hover:bg-secondary/80 glow-secondary">Explore Projects</Button>
-                  </Link>
-                }
-              />
-            )}
-          </TabsContent>
-        </Tabs>
-      </main>
+          {/* Tabs */}
+          <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="mb-4">
+            <TabsList className="border border-[#2a2a2a] bg-[#121212] p-1 rounded">
+              <TabsTrigger value="my-projects">My Projects</TabsTrigger>
+              <TabsTrigger value="collaborations">Collaborations</TabsTrigger>
+            </TabsList>
+            <TabsContent value="my-projects">
+              {myProjects.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {myProjects.map(p => (
+                    <div key={p.id} className="border border-[#2a2a2a] bg-[#1a1a1a] p-4 rounded">
+                      <h3 className="font-semibold mb-2">{p.title}</h3>
+                      <p className="text-gray-400 mb-2">{p.description}</p>
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {p.tags.map(tag => <span key={tag} className="text-xs bg-gray-700 px-2 py-1 rounded">{tag}</span>)}
+                      </div>
+                      <div className="text-sm text-gray-500">Members: {p.members} • Last updated: {p.lastUpdated}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center p-4 text-gray-400">No projects yet. Create your first project!</div>
+              )}
+            </TabsContent>
+            <TabsContent value="collaborations">
+              {collaborations.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {collaborations.map(p => (
+                    <div key={p.id} className="border border-[#2a2a2a] bg-[#1a1a1a] p-4 rounded">
+                      <h3 className="font-semibold mb-2">{p.title}</h3>
+                      <p className="text-gray-400 mb-2">{p.description}</p>
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {p.tags.map(tag => <span key={tag} className="text-xs bg-gray-700 px-2 py-1 rounded">{tag}</span>)}
+                      </div>
+                      <div className="text-sm text-gray-500">Members: {p.members} • Last updated: {p.lastUpdated}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center p-4 text-gray-400">No collaborations yet. Join or create projects!</div>
+              )}
+            </TabsContent>
+          </Tabs>
+        </>
+      )}
     </div>
   )
 }
-

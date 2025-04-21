@@ -1,9 +1,6 @@
 "use client"
 
-import type React from "react"
-
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -14,29 +11,82 @@ import { DashboardHeader } from "@/components/dashboard-header"
 import { useToast } from "@/hooks/use-toast"
 import { X } from "lucide-react"
 
+type Project = {
+  id: string
+  title: string
+  description: string
+  visibility: string
+  tags: string[]
+  createdAt: string
+}
+
+type User = {
+  name: string
+  email: string
+}
+
+// Modal to show project details after creation
+function ProjectDetailsModal({
+  project,
+  onClose,
+}: {
+  project: Project
+  onClose: () => void
+}) {
+  if (!project) return null
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-white rounded-lg p-6 max-w-3xl w-full shadow-lg relative">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+          aria-label="Close"
+        >
+          <X className="h-6 w-6" />
+        </button>
+        <h2 className="text-2xl font-bold mb-2">{project.title}</h2>
+        <p className="mb-4 text-muted-foreground">{project.description}</p>
+        <div className="mb-4">
+          <span className="font-semibold">Visibility:</span> {project.visibility}
+        </div>
+        <div className="flex flex-wrap gap-2 mb-4">
+          {project.tags.map((tag) => (
+            <span key={tag} className="bg-primary/10 text-primary rounded-full px-3 py-1 text-sm">
+              {tag}
+            </span>
+          ))}
+        </div>
+        <div className="text-xs text-muted-foreground mb-4">
+          Created at: {new Date(project.createdAt).toLocaleString()}
+        </div>
+        <Button onClick={onClose}>Close</Button>
+      </div>
+    </div>
+  )
+}
+
 export default function NewProjectPage() {
-  const [user, setUser] = useState<{ name: string; email: string } | null>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [visibility, setVisibility] = useState("public")
   const [tags, setTags] = useState<string[]>([])
   const [currentTag, setCurrentTag] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
+  const [showModal, setShowModal] = useState(false)
+  const [createdProject, setCreatedProject] = useState<Project | null>(null)
   const { toast } = useToast()
 
   useEffect(() => {
-    // Check if user is logged in
     const storedUser = localStorage.getItem("user")
     if (!storedUser) {
-      router.push("/login")
+      window.location.href = "/login"
       return
     }
-
     setUser(JSON.parse(storedUser))
-  }, [router])
+  }, [])
 
-  const handleAddTag = (e: React.KeyboardEvent) => {
+  const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && currentTag.trim() !== "") {
       e.preventDefault()
       if (!tags.includes(currentTag.trim())) {
@@ -50,9 +100,16 @@ export default function NewProjectPage() {
     setTags(tags.filter((tag) => tag !== tagToRemove))
   }
 
+  // Save project to localStorage
+  const saveProject = (project: Project) => {
+    const existing = localStorage.getItem("projects")
+    const projects: Project[] = existing ? JSON.parse(existing) : []
+    projects.push(project)
+    localStorage.setItem("projects", JSON.stringify(projects))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
     if (!title.trim()) {
       toast({
         title: "Title required",
@@ -61,20 +118,29 @@ export default function NewProjectPage() {
       })
       return
     }
-
     setIsLoading(true)
-
     try {
-      // In a real app, you would make an API call to create the project
-      // For demo purposes, we'll simulate a successful creation
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
+      const newProject: Project = {
+        id: Date.now().toString(),
+        title,
+        description,
+        visibility,
+        tags,
+        createdAt: new Date().toISOString(),
+      }
+      saveProject(newProject)
+      setCreatedProject(newProject)
+      setShowModal(true)
       toast({
         title: "Project created",
-        description: `${title} has been created successfully.`,
+        description: `${title} has been created and saved locally.`,
       })
-
-      router.push("/dashboard")
+      // Optionally, reset form fields here
+      setTitle("")
+      setDescription("")
+      setVisibility("public")
+      setTags([])
+      setCurrentTag("")
     } catch (error) {
       toast({
         title: "Failed to create project",
@@ -93,11 +159,9 @@ export default function NewProjectPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <DashboardHeader user={user} />
-
       <main className="flex-1 container py-6">
         <div className="max-w-2xl mx-auto">
           <h1 className="text-3xl font-bold mb-6">Create New Project</h1>
-
           <Card>
             <form onSubmit={handleSubmit}>
               <CardHeader>
@@ -117,7 +181,6 @@ export default function NewProjectPage() {
                     required
                   />
                 </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="description">Description</Label>
                   <Textarea
@@ -128,7 +191,6 @@ export default function NewProjectPage() {
                     onChange={(e) => setDescription(e.target.value)}
                   />
                 </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="visibility">Visibility</Label>
                   <Select value={visibility} onValueChange={setVisibility}>
@@ -149,7 +211,6 @@ export default function NewProjectPage() {
                         : "Only team members can access this project"}
                   </p>
                 </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="tags">Tags</Label>
                   <div className="flex flex-wrap gap-2 mb-2">
@@ -182,7 +243,7 @@ export default function NewProjectPage() {
                 </div>
               </CardContent>
               <CardFooter className="flex justify-between">
-                <Button type="button" variant="outline" onClick={() => router.back()}>
+                <Button type="button" variant="outline" onClick={() => window.history.back()}>
                   Cancel
                 </Button>
                 <Button type="submit" disabled={isLoading}>
@@ -193,7 +254,12 @@ export default function NewProjectPage() {
           </Card>
         </div>
       </main>
+      {showModal && createdProject && (
+        <ProjectDetailsModal
+          project={createdProject}
+          onClose={() => setShowModal(false)}
+        />
+      )}
     </div>
   )
 }
-
