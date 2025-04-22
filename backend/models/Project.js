@@ -5,7 +5,7 @@ const projectSchema = new mongoose.Schema({
     description: String,
     visibility: { type: String, default: 'public' },
     owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    technologies: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Technology' }],
+    technologies: [String],
     members: [{ 
       user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
       role: { type: String, default: 'member' }

@@ -19,10 +19,11 @@ const project=new Project({
     technologies,
     owner:req.user._id
 })
-const savedProject= await new project.save();
+const savedProject= await project.save();
 res.status(201).json(savedProject);
     }
     catch(err){
+        console.error('Error creating project:', err);
 res.status(500).json({error:'Server Error'})
 
     }

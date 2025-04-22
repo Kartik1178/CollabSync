@@ -3,6 +3,8 @@ import mongoose from 'mongoose';
 
 const userSchema = new mongoose.Schema({
   name: String,
+  bio:String,
+  role:{type:String, default:"Junior Developer"},
   email: { type: String, unique: true },
   emailVerified: Date,
   image: String,

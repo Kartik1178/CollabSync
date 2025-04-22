@@ -76,16 +76,18 @@ router.post('/register/initial', async (req, res) => {
   }
 });
 
-// Step 2: Resume Upload (Protected)
+
 router.put('/register/resume', auth, upload.single('resume'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'Resume file required' });
     }
 
+    const relativeResumePath = `/uploads/resumes/${req.file.filename}`;
+
     const user = await User.findByIdAndUpdate(
       req.user.id,
-      { resume: req.file.path },
+      { resume: relativeResumePath },
       { new: true }
     );
 
@@ -93,6 +95,7 @@ router.put('/register/resume', auth, upload.single('resume'), async (req, res) =
       success: true,
       user: {
         id: user._id,
+        resume: relativeResumePath,
         step: 2
       }
     });
@@ -101,6 +104,7 @@ router.put('/register/resume', auth, upload.single('resume'), async (req, res) =
     res.status(500).json({ success: false, message: error.message });
   }
 });
+
 
 // Step 3: Technologies (Protected)
 router.put('/register/technologies', auth, async (req, res) => {
@@ -129,5 +133,67 @@ router.put('/register/technologies', auth, async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 });
+// GET user profile/details (Protected)
+router.get('/me', auth, async (req, res) => {
+  try {
+    // Fetch user details excluding password and including resume path
+    const user = await User.findById(req.user.id).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    res.json({
+      success: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        age: user.age,
+        resume: user.resume,  
+        technologies: user.technologies,  
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+router.put("/update-profile", auth, async (req, res) => {
+  try {
+    const updates = {
+      name: req.body.name,
+      bio: req.body.bio,
+      role: req.body.role,
+      email: req.body.email,
+      age: req.body.age,
+      resume: req.body.resume,
+      image: req.body.image,
+      technologies: req.body.technologies,
+      projects: req.body.projects,
+    };
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.id,
+      { $set: updates },
+      { new: true, runValidators: true }
+    ).select("-password");
+
+    if (!updatedUser) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    res.json({
+      success: true,
+      message: "Profile updated successfully",
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error("Update error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+
+
 
 export default router;
