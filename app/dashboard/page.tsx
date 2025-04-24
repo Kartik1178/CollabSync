@@ -361,26 +361,31 @@ const [requestedProjectIds, setRequestedProjectIds] = useState<string[]>([]);
                         ))}
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="flex -space-x-2">
-                          {project.members.slice(0, 3).map((member) => (
-                            <Avatar key={member.id} className="border-2 border-[#121212] h-8 w-8">
-                              <AvatarImage src={member.avatar || "/placeholder.svg"} alt={member.name} />
-                              <AvatarFallback className="bg-[#1a1a1a] text-primary text-xs">
-                                {member.name
-                                  .split(" ")
-                                  .map((n) => n[0])
-                                  .join("")}
-                              </AvatarFallback>
-                            </Avatar>
-                          ))}
-                          {project.members.length > 3 && (
-                            <div className="flex items-center justify-center h-8 w-8 rounded-full bg-[#1a1a1a] border-2 border-[#121212] text-xs text-primary">
-                              +{project.members.length - 3}
-                            </div>
-                          )}
-                        </div>
-                        <div className="text-sm text-gray-400 ml-2">{project.members.length} members</div>
-                      </div>
+  <div className="flex -space-x-2">
+    {project.members.slice(0, 3).map((member) => (
+      <Avatar key={member.id} className="border-2 border-[#121212] h-8 w-8">
+        <AvatarImage 
+          src={member.avatar || "/placeholder.svg"} 
+          alt={member.name || "User Avatar"} // Default alt text
+        />
+        <AvatarFallback className="bg-[#1a1a1a] text-primary text-xs">
+          {member.name 
+            ? member.name.split(" ").map((n) => n[0]).join("") 
+            : "?"} {/* Default initials if name is missing */}
+        </AvatarFallback>
+      </Avatar>
+    ))}
+    {project.members.length > 3 && (
+      <div className="flex items-center justify-center h-8 w-8 rounded-full bg-[#1a1a1a] border-2 border-[#121212] text-xs text-primary">
+        +{project.members.length - 3}
+      </div>
+    )}
+  </div>
+  <div className="text-sm text-gray-400 ml-2">
+    {project.members.length} member{project.members.length !== 1 ? "s" : ""}
+  </div>
+</div>
+
                       <div className="flex justify-between items-center text-xs text-gray-400">
                         <div className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
@@ -437,17 +442,15 @@ const [requestedProjectIds, setRequestedProjectIds] = useState<string[]>([]);
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="flex -space-x-2">
-                          {project.members.slice(0, 3).map((member) => (
-                            <Avatar key={member.id} className="border-2 border-[#121212] h-8 w-8">
-                              <AvatarImage src={member.avatar || "/placeholder.svg"} alt={member.name} />
-                              <AvatarFallback className="bg-[#1a1a1a] text-primary text-xs">
-                                {member.name
-                                  .split(" ")
-                                  .map((n) => n[0])
-                                  .join("")}
-                              </AvatarFallback>
-                            </Avatar>
-                          ))}
+                        {project.members.slice(0, 3).map((member) => (
+  <Avatar key={member.id} className="border-2 border-[#121212] h-8 w-8">
+    <AvatarImage src={member.avatar || "/placeholder.svg"} alt={member.name || "User"} />
+    <AvatarFallback className="bg-[#1a1a1a] text-primary text-xs">
+      {(member?.name?.split(" ")?.map((n) => n[0])?.join("") ?? "U N")}
+    </AvatarFallback>
+  </Avatar>
+))}
+
                         </div>
                         <div className="text-sm text-gray-400 ml-2">{project.members.length} members</div>
                       </div>
@@ -567,18 +570,21 @@ const [requestedProjectIds, setRequestedProjectIds] = useState<string[]>([]);
 
               <TabsContent value="team" className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {selectedProject.members.map((member) => (
+                  {selectedProject?.members?.map((member) => (
                     <Card key={member.id} className="border-[#2a2a2a] bg-[#1a1a1a]">
                       <CardContent className="pt-6">
                         <div className="flex items-center gap-4">
                           <Avatar className="h-12 w-12 border border-primary">
                             <AvatarImage src={member.avatar || "/placeholder.svg"} alt={member.name} />
                             <AvatarFallback className="bg-[#121212] text-primary">
-                              {member.name
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")}
-                            </AvatarFallback>
+  {member?.name
+    ? member.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+    : "?"} {/* Fallback if name is undefined */}
+</AvatarFallback>
+
                           </Avatar>
                           <div>
                             <h4 className="font-medium text-gray-200">{member.name}</h4>

@@ -2,16 +2,20 @@ import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 
 type ProjectRequest = {
-  _id: string;
-  message: string;
-  technologies: string[];
-  project: {
-    _id: string;
-    name: string;
-  };
+  requestId: string;
+  status: string;
+  requestedAt: string;
   user: {
     _id: string;
     name: string;
+    email: string;
+    role: string;
+    age: number;
+    technologies: string[];
+  };
+  project: {
+    _id: string;
+    title: string;
   };
 };
 
@@ -45,18 +49,17 @@ export default function MessagePopup({
         .finally(() => setLoading(false));
     }
   }, [isOpen]);
-  
 
   const handleAccept = async (request: ProjectRequest) => {
     try {
       await fetch(
-        `http://localhost:5000/projects/api/${request.project._id}/requests/${request.user._id}/accept`,
+        `http://localhost:5000/projects/${request.project._id}/requests/${request.user._id}/accept`,
         {
           method: "POST",
           credentials: "include",
         }
       );
-      setRequests((prev) => prev.filter((r) => r._id !== request._id));
+      setRequests((prev) => prev.filter((r) => r.requestId !== request.requestId));
     } catch (err) {
       console.error("Error accepting request:", err);
     }
@@ -65,13 +68,13 @@ export default function MessagePopup({
   const handleReject = async (request: ProjectRequest) => {
     try {
       await fetch(
-        `http://localhost:5000/projects/api/${request.project._id}/requests/${request.user._id}/reject`,
+        `http://localhost:5000/projects/${request.project._id}/requests/${request.user._id}/reject`,
         {
           method: "POST",
           credentials: "include",
         }
       );
-      setRequests((prev) => prev.filter((r) => r._id !== request._id));
+      setRequests((prev) => prev.filter((r) => r.requestId !== request.requestId));
     } catch (err) {
       console.error("Error rejecting request:", err);
     }
@@ -95,21 +98,20 @@ export default function MessagePopup({
           ) : requests.length > 0 ? (
             requests.map((request) => (
               <div
-                key={request._id}
+                key={request.requestId}
                 className="p-4 border-b border-purple-500/10 hover:bg-purple-900/10"
               >
                 <div className="flex justify-between">
                   <h3 className="font-medium text-purple-300">
-                    {request.project.name}
+                    {request.project.title}
                   </h3>
                   <span className="text-xs text-gray-400">
                     From: {request.user.name}
                   </span>
                 </div>
-    
 
                 <div className="flex flex-wrap gap-2 my-2">
-                  {request.technologies.map((tech) => (
+                  {request.user.technologies.map((tech) => (
                     <span
                       key={tech}
                       className="text-xs bg-purple-900/40 border border-purple-500/30 px-2 py-1 rounded-full text-purple-300"
