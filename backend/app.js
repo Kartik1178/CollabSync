@@ -8,7 +8,7 @@ import projectRoutes from './routes/projects.js'
 // Import your routes
 import loginRoutes from './routes/login.js';
 import registerRoutes from './routes/register.js';
-
+import taskRoutes from './routes/tasks.js';
 // Import DB connection
 import connectDB from './config/db.js';
 
@@ -42,6 +42,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/auth', loginRoutes);     // Handles /api/auth/login
 app.use('/api/auth', registerRoutes);  // Handles /api/auth/register/*
 app.use('/projects',projectRoutes);
+app.use('/tasks',taskRoutes);
 // Health check route
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Server is running!' });

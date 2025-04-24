@@ -2,10 +2,15 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
+import MessageButton from "../../components/MessageButton";
+
+
+
 import {
   Dialog,
   DialogContent,
@@ -23,7 +28,7 @@ interface Project {
   id: string
   title: string
   description: string
-  techStack: string[]
+  technologies: string[]
   progress: number
   members: {
     id: string
@@ -99,42 +104,8 @@ const mockProjects: Project[] = [
   },
 ]
 
-const recommendedProjects: Project[] = [
-  {
-    id: "4",
-    title: "AR Navigation App",
-    description: "Augmented reality app for indoor and outdoor navigation with real-time guidance.",
-    techStack: ["Unity", "ARKit", "ARCore", "C#"],
-    progress: 30,
-    members: [
-      { id: "6", name: "Emma Roberts", avatar: "/placeholder.svg?height=40&width=40", role: "AR Developer" },
-      { id: "7", name: "David Kim", avatar: "/placeholder.svg?height=40&width=40", role: "3D Artist" },
-    ],
-    tasks: [
-      { id: "t1", title: "Implement AR tracking", status: "in-progress", assignee: "Emma Roberts" },
-      { id: "t2", title: "Create 3D assets", status: "in-progress", assignee: "David Kim" },
-      { id: "t3", title: "Develop routing algorithm", status: "todo", assignee: "Emma Roberts" },
-    ],
-    lastUpdated: "1 week ago",
-  },
-  {
-    id: "5",
-    title: "Quantum Computing Simulator",
-    description: "Educational platform to simulate and visualize quantum computing concepts.",
-    techStack: ["Python", "Qiskit", "React", "D3.js"],
-    progress: 55,
-    members: [
-      { id: "8", name: "Ryan Patel", avatar: "/placeholder.svg?height=40&width=40", role: "Quantum Researcher" },
-      { id: "9", name: "Julia Lee", avatar: "/placeholder.svg?height=40&width=40", role: "Frontend Developer" },
-    ],
-    tasks: [
-      { id: "t1", title: "Implement quantum gates", status: "completed", assignee: "Ryan Patel" },
-      { id: "t2", title: "Create interactive visualizations", status: "in-progress", assignee: "Julia Lee" },
-      { id: "t3", title: "Add tutorial system", status: "todo", assignee: "Both" },
-    ],
-    lastUpdated: "3 days ago",
-  },
-]
+
+
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("my-projects")
@@ -146,24 +117,87 @@ export default function DashboardPage() {
     description: "",
     technologies:[] as string[], // This will be an array of ObjectIds or technology names depending on your flow
   })
+  const [recommendedProjects, setRecommendedProjects] = useState<Project[]>([])
+  const [projects, setProjects] = useState<Project[]>([])
+const [filteredProjects, setFilteredProjects] = useState<Project[]>([])
+const [requestedProjectIds, setRequestedProjectIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/projects/find", {
+          method: "GET",
+          credentials: "include", // if your backend needs cookies/auth
+          headers: {
+            "Content-Type": "application/json",
+          },
+        })
+    
+        if (!res.ok) {
+          const error = await res.text()
+          throw new Error(error)
+        }
+    
+        const data = await res.json()
+        setProjects(data.projects)
+        setFilteredProjects(data.projects)
+      } catch (err: any) {
+        console.error("Failed to fetch your projects", err.message)
+      }
+    }
+    
+    fetchProjects()
+  }, [])
+  const handleJoinRequest = async (projectId: string) => {
+    try {
+      const res = await fetch(`http://localhost:5000/projects/${projectId}/request`, {
+        method: 'POST',
+        credentials: "include",
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+  
+      const data = await res.json();
+  
+      if (res.ok) {
+        setRequestedProjectIds((prev) => [...prev, projectId]);
+      } else {
+        console.error("Failed to send join request", data);
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  };
+  
+  useEffect(() => {
+    const fetchRecommended = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/projects/fetchAll")
+        if (!res.ok) throw new Error("Failed to fetch recommended projects")
+  
+        const data = await res.json()
+        setRecommendedProjects(data)
+      } catch (error) {
+        console.error("Error fetching recommended projects:", error)
+      }
+    }
+  
+    fetchRecommended()
+  }, [])
   const setTechnologies = (technologies: string[]) => {
     setFormData((prev) => ({
       ...prev,
       technologies,
     }));
   };
-  const filteredProjects = mockProjects.filter(
-    (project) =>
-      project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.techStack.some((tech) => tech.toLowerCase().includes(searchQuery.toLowerCase())),
-  )
+
 
   const filteredRecommended = recommendedProjects.filter(
     (project) =>
       project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       project.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.techStack.some((tech) => tech.toLowerCase().includes(searchQuery.toLowerCase())),
+      project.technologies.some((tech) => tech.toLowerCase().includes(searchQuery.toLowerCase())),
   )
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -194,20 +228,22 @@ export default function DashboardPage() {
   
   return (
     <div className="min-h-screen bg-[#0a0a0a] cyber-grid p-4 md:p-8">
-      <div className="flex justify-between items-center mb-8">
-        <Link href="/" className="flex items-center gap-2 font-bold text-xl">
-          <Zap className="h-6 w-6 text-primary animate-pulse" />
-          <span className="gradient-text">COLLABSYNC</span>
-        </Link>
-        <div className="flex items-center gap-4">
-          <Link href="/profile">
-            <Avatar className="h-10 w-10 border border-primary">
-              <AvatarImage src="/placeholder.svg?height=40&width=40" alt="Profile" />
-              <AvatarFallback className="bg-[#1a1a1a] text-primary">AJ</AvatarFallback>
-            </Avatar>
-          </Link>
-        </div>
-      </div>
+     <div className="flex justify-between items-center mb-8">
+    <Link href="/" className="flex items-center gap-2 font-bold text-xl">
+      <Zap className="h-6 w-6 text-primary animate-pulse" />
+      <span className="gradient-text">COLLABSYNC</span>
+    </Link>
+    <div className="flex items-center gap-4">
+      <MessageButton/>
+      <Link href="/profile">
+        <Avatar className="h-10 w-10 border border-primary">
+          <AvatarImage src="/placeholder.svg?height=40&width=40" alt="Profile" />
+          <AvatarFallback className="bg-[#1a1a1a] text-primary">AJ</AvatarFallback>
+        </Avatar>
+      </Link>
+    </div>
+  </div>
+
 
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
@@ -270,14 +306,8 @@ export default function DashboardPage() {
   } />
   </div>
 
-  <Button type="submit">Create Project</Button>
+  <Button onClick={() => setIsProjectDialogOpen(false)} type="submit">Create Project</Button>
 </form>
-
-                <DialogFooter>
-                  <Button className="bg-primary hover:bg-primary/80 glow" onClick={() => setIsProjectDialogOpen(false)}>
-                    Create Project
-                  </Button>
-                </DialogFooter>
               </DialogContent>
             </Dialog>
           </div>
@@ -324,7 +354,7 @@ export default function DashboardPage() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="flex flex-wrap gap-2">
-                        {project.techStack.map((tech) => (
+                        {project.technologies.map((tech) => (
                           <Badge key={tech} variant="outline" className="border-primary text-primary">
                             {tech}
                           </Badge>
@@ -399,7 +429,7 @@ export default function DashboardPage() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="flex flex-wrap gap-2">
-                        {project.techStack.map((tech) => (
+                        {project.technologies.map((tech) => (
                           <Badge key={tech} variant="outline" className="border-primary text-primary">
                             {tech}
                           </Badge>
@@ -423,11 +453,26 @@ export default function DashboardPage() {
                       </div>
                     </CardContent>
                     <CardFooter>
-                      <Button variant="ghost" className="w-full text-primary hover:text-primary hover:bg-primary/10">
-                        Join Project
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </CardFooter>
+  {requestedProjectIds.includes(project.id) ? (
+    <Button
+      variant="ghost"
+      disabled
+      className="w-full text-gray-400 bg-transparent cursor-not-allowed"
+    >
+      Requested
+    </Button>
+  ) : (
+    <Button
+      variant="ghost"
+      className="w-full text-primary hover:text-primary hover:bg-primary/10"
+      onClick={() => handleJoinRequest(project.id)}
+    >
+      Join Project
+      <ArrowRight className="ml-2 h-4 w-4" />
+    </Button>
+  )}
+</CardFooter>
+
                   </Card>
                 ))}
               </div>
@@ -557,7 +602,7 @@ export default function DashboardPage() {
                 <div className="flex justify-end">
                   <Button className="bg-primary hover:bg-primary/80 glow">
                     <Plus className="mr-2 h-4 w-4" />
-                    Invite Member
+                    Accept Members
                   </Button>
                 </div>
               </TabsContent>
@@ -618,7 +663,7 @@ export default function DashboardPage() {
 
             <DialogFooter className="flex justify-between items-center">
               <div className="flex gap-2">
-                {selectedProject.techStack.map((tech) => (
+                {selectedProject.technologies.map((tech) => (
                   <Badge key={tech} variant="outline" className="border-primary text-primary">
                     {tech}
                   </Badge>
