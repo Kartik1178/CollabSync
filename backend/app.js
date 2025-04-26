@@ -9,6 +9,7 @@ import projectRoutes from './routes/projects.js'
 import loginRoutes from './routes/login.js';
 import registerRoutes from './routes/register.js';
 import taskRoutes from './routes/tasks.js';
+import messageRoutes from './routes/message.js'
 // Import DB connection
 import connectDB from './config/db.js';
 
@@ -43,6 +44,7 @@ app.use('/api/auth', loginRoutes);     // Handles /api/auth/login
 app.use('/api/auth', registerRoutes);  // Handles /api/auth/register/*
 app.use('/projects',projectRoutes);
 app.use('/tasks',taskRoutes);
+app.use('/messages',messageRoutes);
 // Health check route
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Server is running!' });

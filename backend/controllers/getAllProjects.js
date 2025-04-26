@@ -3,7 +3,7 @@ import Project from '../models/Project.js';
 export const getAllProjects = async (req, res) => {
   try {
     const projects = await Project.find().populate('members.user') // populate the user details in each member
-    .exec();; // Fetch all projects from the database
+    .exec(); // Fetch all projects from the database
     res.json(projects); // Return the projects as a JSON response
   } catch (error) {
     console.error('Error fetching projects:', error);

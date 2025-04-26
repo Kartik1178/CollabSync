@@ -4,7 +4,15 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 
 const router = express.Router();
+router.post('/logout', (req, res) => {
+  res.clearCookie('token', {
+    httpOnly: true,
+    sameSite: 'Strict',
+    secure: process.env.NODE_ENV === 'production',
+  });
 
+  return res.status(200).json({ message: 'Logged out successfully' });
+});
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;

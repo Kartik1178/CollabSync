@@ -24,23 +24,43 @@ interface DashboardHeaderProps {
   }
 }
 
+
+
 export function DashboardHeader({ user }: DashboardHeaderProps) {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
 
-  const handleLogout = () => {
-    // In a real app, you would make an API call to logout
-    localStorage.removeItem("user")
-
-    toast({
-      title: "Logged out",
-      description: "You have been logged out successfully.",
-    })
-
-    router.push("/login")
+  const handleLogout = async () => {
+    try {
+      const res = await fetch("http://localhost:5000/api/auth/logout", {
+        method: "POST",
+        credentials: "include", // 🔥 includes the cookie
+      })
+  
+      if (res.ok) {
+        toast({
+          title: "Logged out",
+          description: "You have been logged out successfully.",
+        })
+  
+        router.push("/login")
+      } else {
+        toast({
+          title: "Logout failed",
+          description: "Something went wrong while logging out.",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Logout error",
+        description: "An unexpected error occurred.",
+        variant: "destructive",
+      })
+    }
   }
-
+  
   return (
     <header className="sticky top-0 z-10 w-full border-b border-[#2a2a2a] bg-[#0a0a0a]/95 backdrop-blur supports-[backdrop-filter]:bg-[#0a0a0a]/60">
       <div className="container flex h-16 items-center">
@@ -94,6 +114,16 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-[#2a2a2a]" />
+              <DropdownMenuItem
+  onClick={handleLogout}
+  className="hover:bg-destructive/10 hover:text-destructive cursor-pointer"
+>
+  <LogOut className="mr-2 h-4 w-4" />
+  <span>Log out</span>
+</DropdownMenuItem>
+
+
+
               <DropdownMenuItem className="hover:bg-primary/10 hover:text-primary cursor-pointer">
                 <User className="mr-2 h-4 w-4" />
                 <span>Profile</span>

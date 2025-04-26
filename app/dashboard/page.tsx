@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import MessageButton from "../../components/MessageButton";
-
+import AddTaskDialog from "@/components/AddTaskDialog"
 
 
 import {
@@ -24,6 +24,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Zap, Plus, Search, Code, Users, MessageSquare, Calendar, ArrowRight } from "lucide-react"
 import TechnologySelector from "@/components/categoryselector"
+
+
+
 interface Project {
   id: string
   title: string
@@ -44,6 +47,26 @@ interface Project {
   }[]
   lastUpdated: string
 }
+// types.ts or in the same file above the component
+
+type User = {
+  _id: string;
+  name: string;
+  image?: string;
+};
+
+type Message = {
+  _id: string;
+  project: string;
+  sender: User;
+  text: string;
+  createdAt: string;
+};
+
+type ChatTabProps = {
+  projectId: string;
+  currentUser: User;
+};
 
 // Mock data - would be fetched from API in a real app
 const mockProjects: Project[] = [
@@ -51,7 +74,7 @@ const mockProjects: Project[] = [
     id: "1",
     title: "AI Image Generator",
     description: "A web application that uses machine learning to generate images from text descriptions.",
-    techStack: ["React", "Python", "TensorFlow", "AWS"],
+    technologies: ["React", "Python", "TensorFlow", "AWS"],
     progress: 65,
     members: [
       { id: "1", name: "Alex Johnson", avatar: "/placeholder.svg?height=40&width=40", role: "Lead Developer" },
@@ -112,15 +135,61 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false)
+  const [refreshTasks, setRefreshTasks] = useState(false)
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     technologies:[] as string[], // This will be an array of ObjectIds or technology names depending on your flow
   })
+  const [tasks, setTasks] = useState<Project["tasks"]>([])
+
   const [recommendedProjects, setRecommendedProjects] = useState<Project[]>([])
   const [projects, setProjects] = useState<Project[]>([])
 const [filteredProjects, setFilteredProjects] = useState<Project[]>([])
 const [requestedProjectIds, setRequestedProjectIds] = useState<string[]>([]);
+const [text, setText] = useState<string>('');
+const initialMessages: Message[] = [
+  {
+    _id: "1",
+    project: "your-project-id", // Add project ID
+    sender: { _id: "2", name: "System", image: "/placeholder.svg" },
+    text: "Start chatting",
+    createdAt: new Date().toISOString(),
+  },
+];
+const [messages, setMessages] = useState<Message[]>([
+  {
+    _id: "1",
+    project: "default-project-id",
+    sender: { _id: "system", name: "System", image: "/placeholder.svg" },
+    text: "Chat started",
+    createdAt: new Date().toISOString(),
+  },
+]);
+
+const currentUser: User = {
+  _id: "user-1",
+  name: "Alex Johnson",
+  image: "/placeholder.svg"
+};
+
+const handleSend = () => {
+  if (text.trim() === "") return;
+  
+  const newMessage: Message = {
+    _id: Date.now().toString(),
+    project: selectedProject?.id || "default-project-id",
+    sender: currentUser,
+    text: text.trim(),
+    createdAt: new Date().toISOString(),
+  };
+
+  setMessages(prev => [...prev, newMessage]);
+  setText("");
+};
+
+
+
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -169,7 +238,14 @@ const [requestedProjectIds, setRequestedProjectIds] = useState<string[]>([]);
       console.log(err);
     }
   };
+
+
+
+const handleTaskCreated = () => {
+  setRefreshTasks(prev => !prev)
   
+}
+
   useEffect(() => {
     const fetchRecommended = async () => {
       try {
@@ -225,7 +301,28 @@ const [requestedProjectIds, setRequestedProjectIds] = useState<string[]>([]);
       console.error("Error creating project:", err.message)
     }
   }
-  
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true)
+    try {
+      const res = await fetch("http://localhost:5000/api/auth/logout", {
+        method: "POST",
+        credentials: "include", // includes the cookie
+      })
+
+      if (res.ok) {
+         window.location.href = "/login"
+      } else {
+        alert("Logout failed. Please try again.")
+      }
+    } catch (error) {
+      alert("An error occurred while logging out.")
+    } finally {
+      setIsLoggingOut(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] cyber-grid p-4 md:p-8">
      <div className="flex justify-between items-center mb-8">
@@ -233,6 +330,16 @@ const [requestedProjectIds, setRequestedProjectIds] = useState<string[]>([]);
       <Zap className="h-6 w-6 text-primary animate-pulse" />
       <span className="gradient-text">COLLABSYNC</span>
     </Link>
+    <div className="flex items-center gap-4">
+    <Button
+              variant="destructive"
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="bg-red-500 text-white hover:bg-red-600"
+            >
+              {isLoggingOut ? "Logging out..." : "Log out"}
+            </Button>
+    </div>
     <div className="flex items-center gap-4">
       <MessageButton/>
       <Link href="/profile">
@@ -561,10 +668,12 @@ const [requestedProjectIds, setRequestedProjectIds] = useState<string[]>([]);
                 </div>
 
                 <div className="flex justify-end">
-                  <Button className="bg-primary hover:bg-primary/80 glow">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Task
-                  </Button>
+                <AddTaskDialog
+  projectId={selectedProject.id}
+  members={selectedProject.members}
+  onTaskCreated={handleTaskCreated}
+/>
+
                 </div>
               </TabsContent>
 
@@ -614,57 +723,71 @@ const [requestedProjectIds, setRequestedProjectIds] = useState<string[]>([]);
               </TabsContent>
 
               <TabsContent value="chat" className="space-y-4">
-                <Card className="border-[#2a2a2a] bg-[#1a1a1a] h-[300px] flex flex-col">
-                  <CardContent className="flex-1 p-4 overflow-y-auto">
-                    <div className="space-y-4">
-                      <div className="flex items-start gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src="/placeholder.svg?height=32&width=32" alt="Sarah Chen" />
-                          <AvatarFallback className="bg-[#121212] text-primary text-xs">SC</AvatarFallback>
-                        </Avatar>
-                        <div className="bg-[#121212] p-3 rounded-lg rounded-tl-none max-w-[80%]">
-                          <p className="text-xs text-gray-400 mb-1">Sarah Chen</p>
-                          <p className="text-sm text-gray-200">
-                            I've completed the image generation API. It's working well in testing.
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-3 justify-end">
-                        <div className="bg-primary/20 p-3 rounded-lg rounded-tr-none max-w-[80%]">
-                          <p className="text-xs text-gray-400 mb-1">You</p>
-                          <p className="text-sm text-gray-200">
-                            Great work! I'm still working on the authentication system. Should be done by tomorrow.
-                          </p>
-                        </div>
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src="/placeholder.svg?height=32&width=32" alt="You" />
-                          <AvatarFallback className="bg-[#121212] text-primary text-xs">AJ</AvatarFallback>
-                        </Avatar>
-                      </div>
-
-                      <div className="flex items-start gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src="/placeholder.svg?height=32&width=32" alt="Mike Davis" />
-                          <AvatarFallback className="bg-[#121212] text-primary text-xs">MD</AvatarFallback>
-                        </Avatar>
-                        <div className="bg-[#121212] p-3 rounded-lg rounded-tl-none max-w-[80%]">
-                          <p className="text-xs text-gray-400 mb-1">Mike Davis</p>
-                          <p className="text-sm text-gray-200">
-                            The UI is coming along nicely. I'll share some screenshots later today for feedback.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="border-t border-[#2a2a2a] p-4">
-                    <div className="flex w-full gap-2">
-                      <Input placeholder="Type your message..." className="flex-1 bg-[#121212] border-[#2a2a2a]" />
-                      <Button className="bg-primary hover:bg-primary/80">Send</Button>
-                    </div>
-                  </CardFooter>
-                </Card>
-              </TabsContent>
+  <Card className="border-[#2a2a2a] bg-[#1a1a1a] h-[300px] flex flex-col">
+    <CardContent className="flex-1 p-4 overflow-y-auto">
+      <div className="space-y-4">
+        {messages.map((message) => {
+          const isCurrentUser = message.sender._id === currentUser._id;
+          return (
+            <div 
+              key={message._id}
+              className={`flex items-start gap-3 ${isCurrentUser ? "justify-end" : ""}`}
+            >
+              {!isCurrentUser && (
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={message.sender.image} alt={message.sender.name} />
+                  <AvatarFallback className="bg-[#121212] text-primary text-xs">
+                    {message.sender.name.slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              )}
+              <div className={`p-3 rounded-lg max-w-[80%] ${
+                isCurrentUser 
+                  ? "bg-primary/20 rounded-tr-none" 
+                  : "bg-[#121212] rounded-tl-none"
+              }`}>
+                <p className="text-xs text-gray-400 mb-1">
+                  {isCurrentUser ? "You" : message.sender.name}
+                </p>
+                <p className="text-sm text-gray-200">{message.text}</p>
+              </div>
+              {isCurrentUser && (
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={currentUser.image} alt="You" />
+                  <AvatarFallback className="bg-[#121212] text-primary text-xs">
+                    {currentUser.name.slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </CardContent>
+    <CardFooter className="border-t border-[#2a2a2a] p-4">
+      <div className="flex w-full gap-2">
+        <Input
+          placeholder="Type your message..."
+          className="flex-1 bg-[#121212] border-[#2a2a2a]"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              handleSend();
+            }
+          }}
+        />
+        <Button 
+          className="bg-primary hover:bg-primary/80"
+          onClick={handleSend}
+        >
+          Send
+        </Button>
+      </div>
+    </CardFooter>
+  </Card>
+</TabsContent>
             </Tabs>
 
             <DialogFooter className="flex justify-between items-center">
