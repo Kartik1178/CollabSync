@@ -135,6 +135,7 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false)
+  const [newProjectDialogOpen,setNewProjectDialogOpen]=useState(false)
   const [refreshTasks, setRefreshTasks] = useState(false)
   const [formData, setFormData] = useState({
     title: "",
