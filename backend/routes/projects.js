@@ -32,7 +32,11 @@ res.status(500).json({error:'Server Error'})
 router.get('/find',auth,async(req,res)=>{
     try{
 const user=req.user._id;
-const projects=await Project.find({owner:user}).populate('tasks');
+const projects=await Project.find({owner:user}) .populate({
+  path: 'members.user',
+  select: 'name image role',
+})
+.populate('tasks');
 res.json({success:true,projects});
     }
     catch(err){
@@ -153,8 +157,56 @@ router.post('/:id/request', auth, async (req, res) => {
     }
   });
   
+  // routes/projectRoutes.js or wherever your routes are defined
+router.delete('/:projectId/members/:userId', auth, async (req, res) => {
+  const { projectId, userId } = req.params;
 
+  try {
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
 
+    if (!project.owner.equals(req.user._id)) {
+      return res.status(403).json({ message: 'Only the owner can remove users from the project' });
+    }
+
+    const memberIndex = project.members.findIndex(member => member.user.equals(userId));
+    if (memberIndex === -1) {
+      return res.status(404).json({ message: 'User is not a member of the project' });
+    }
+
+    project.members.splice(memberIndex, 1);
+    await project.save();
+
+    res.json({ message: 'User removed from the project successfully' });
+  } catch (err) {
+    console.error('Error removing user from project:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+router.delete('/:projectId', auth, async (req, res) => {
+  const { projectId } = req.params;
+
+  try {
+   
+    const project = await Project.findById(projectId);
+
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+
+    if (!project.owner.equals(req.user._id)) {
+      return res.status(403).json({ message: 'Only the owner can delete the project' });
+    }
+    await Project.findByIdAndDelete(projectId);
+
+    res.json({ message: 'Project deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting project:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
 
 
 

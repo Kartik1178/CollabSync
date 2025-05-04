@@ -10,7 +10,14 @@ import { useEffect, useState } from "react"
 import { Plus } from "lucide-react"
 interface AddTaskDialogProps {
   projectId: string
-  members: Array<{ id: string; name: string }>
+  members: {
+    user: {
+      id: string
+      name: string
+      avatar: string
+      role: string
+    }
+  }[]
   onTaskCreated: () => void
 }
 
@@ -86,8 +93,8 @@ export default function AddTaskDialog({ projectId, members, onTaskCreated }: Add
               </SelectTrigger>
               <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
                 {members.map((member) => (
-                  <SelectItem key={member.id} value={member.id} className="hover:bg-[#2a2a2a]">
-                    {member.name}
+                  <SelectItem key={member.user.id} value={member.user.id} className="hover:bg-[#2a2a2a]">
+                    {member.user.name}
                   </SelectItem>
                 ))}
               </SelectContent>

@@ -9,8 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import MessageButton from "../../components/MessageButton";
 import AddTaskDialog from "@/components/AddTaskDialog"
-
-
+import RemoveMemberButton from "@/components/RemoveMemberButton"
+import DeleteProjectButton from "@/components/RemoveProject"
 import {
   Dialog,
   DialogContent,
@@ -34,10 +34,11 @@ interface Project {
   technologies: string[]
   progress: number
   members: {
+    user:{
     id: string
     name: string
     avatar: string
-    role: string
+    role: string}
   }[]
   tasks: {
     id: string
@@ -48,6 +49,10 @@ interface Project {
   lastUpdated: string
 }
 // types.ts or in the same file above the component
+interface DeleteProjectButtonProps {
+  projectId: string
+  onDelete: (id: string) => void  // <-- Accepts an ID argument
+}
 
 type User = {
   _id: string;
@@ -166,7 +171,12 @@ const [messages, setMessages] = useState<Message[]>([
     text: "Chat started",
     createdAt: new Date().toISOString(),
   },
-]);
+])
+;
+
+
+
+
 
 const currentUser: User = {
   _id: "user-1",
@@ -188,7 +198,6 @@ const handleSend = () => {
   setMessages(prev => [...prev, newMessage]);
   setText("");
 };
-
 
 
 
@@ -323,7 +332,29 @@ const handleTaskCreated = () => {
       setIsLoggingOut(false)
     }
   }
-
+  const handleDelete = async (id: string) => {
+    try {
+      const res = await fetch(`http://localhost:5000/projects/${id}`, {
+        method: 'DELETE',
+        credentials: 'include', 
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+  
+      const data = await res.json();
+  
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to delete project');
+      }
+  
+      console.log('✅', data.message);
+      setFilteredProjects((prev) => prev.filter((p) => p.id !== id));
+    } catch (error) {
+      console.error('❌ Delete error:', error);
+    }
+  };
+  
   return (
     <div className="min-h-screen bg-[#0a0a0a] cyber-grid p-4 md:p-8">
      <div className="flex justify-between items-center mb-8">
@@ -366,7 +397,7 @@ const handleTaskCreated = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Dialog open={isProjectDialogOpen} onOpenChange={setIsProjectDialogOpen}>
+            <Dialog open={newProjectDialogOpen}  onOpenChange={setNewProjectDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-primary hover:bg-primary/80 glow">
                   <Plus className="mr-2 h-4 w-4" />
@@ -447,10 +478,7 @@ const handleTaskCreated = () => {
                   <Card
                     key={project.id}
                     className="border-[#2a2a2a] bg-[#121212] hover:border-primary transition-all duration-300 cursor-pointer"
-                    onClick={() => {
-                      setSelectedProject(project)
-                      setIsProjectDialogOpen(true)
-                    }}
+                    
                   >
                     <CardHeader className="pb-2">
                       <CardTitle className="text-xl font-bold text-white">{project.title}</CardTitle>
@@ -471,14 +499,14 @@ const handleTaskCreated = () => {
                       <div className="flex items-center gap-2">
   <div className="flex -space-x-2">
     {project.members.slice(0, 3).map((member) => (
-      <Avatar key={member.id} className="border-2 border-[#121212] h-8 w-8">
+      <Avatar key={member.user.id} className="border-2 border-[#121212] h-8 w-8">
         <AvatarImage 
-          src={member.avatar || "/placeholder.svg"} 
-          alt={member.name || "User Avatar"} // Default alt text
+          src={member.user.avatar || "/placeholder.svg"} 
+          alt={member.user.name || "User Avatar"} // Default alt text
         />
         <AvatarFallback className="bg-[#1a1a1a] text-primary text-xs">
-          {member.name 
-            ? member.name.split(" ").map((n) => n[0]).join("") 
+          {member.user.name 
+            ? member.user.name.split(" ").map((n) => n[0]).join("") 
             : "?"} {/* Default initials if name is missing */}
         </AvatarFallback>
       </Avatar>
@@ -503,11 +531,21 @@ const handleTaskCreated = () => {
                       </div>
                     </CardContent>
                     <CardFooter>
-                      <Button variant="ghost" className="w-full text-primary hover:text-primary hover:bg-primary/10">
+                      <Button onClick={() => {
+                      setSelectedProject(project)
+                      setIsProjectDialogOpen(true)
+                    }} variant="ghost" className="w-full text-primary hover:text-primary hover:bg-primary/10">
                         View Details
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
+                      <Button variant="destructive" onClick={() => handleDelete(project.id)}>
+  Delete
+</Button>
+
                     </CardFooter>
+    
+
+
                   </Card>
                 ))}
               </div>
@@ -551,10 +589,10 @@ const handleTaskCreated = () => {
                       <div className="flex items-center gap-2">
                         <div className="flex -space-x-2">
                         {project.members.slice(0, 3).map((member) => (
-  <Avatar key={member.id} className="border-2 border-[#121212] h-8 w-8">
-    <AvatarImage src={member.avatar || "/placeholder.svg"} alt={member.name || "User"} />
+  <Avatar key={member.user.id} className="border-2 border-[#121212] h-8 w-8">
+    <AvatarImage src={member.user.avatar || "/placeholder.svg"} alt={member.user.name || "User"} />
     <AvatarFallback className="bg-[#1a1a1a] text-primary text-xs">
-      {(member?.name?.split(" ")?.map((n) => n[0])?.join("") ?? "U N")}
+      {(member?.user.name?.split(" ")?.map((n) => n[0])?.join("") ?? "U N")}
     </AvatarFallback>
   </Avatar>
 ))}
@@ -681,14 +719,14 @@ const handleTaskCreated = () => {
               <TabsContent value="team" className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {selectedProject?.members?.map((member) => (
-                    <Card key={member.id} className="border-[#2a2a2a] bg-[#1a1a1a]">
+                    <Card key={member.user.id} className="border-[#2a2a2a] bg-[#1a1a1a]">
                       <CardContent className="pt-6">
                         <div className="flex items-center gap-4">
                           <Avatar className="h-12 w-12 border border-primary">
-                            <AvatarImage src={member.avatar || "/placeholder.svg"} alt={member.name} />
+                            <AvatarImage src={member.user.avatar || "/placeholder.svg"} alt={member.user.name} />
                             <AvatarFallback className="bg-[#121212] text-primary">
-  {member?.name
-    ? member.name
+  {member?.user.name
+    ? member.user.name
         .split(" ")
         .map((n) => n[0])
         .join("")
@@ -697,8 +735,8 @@ const handleTaskCreated = () => {
 
                           </Avatar>
                           <div>
-                            <h4 className="font-medium text-gray-200">{member.name}</h4>
-                            <p className="text-xs text-gray-400">{member.role}</p>
+                            <h4 className="font-medium text-gray-200">{member.user.name}</h4>
+                            <p className="text-xs text-gray-400">{member.user.role}</p>
                           </div>
                         </div>
                       </CardContent>
@@ -710,6 +748,20 @@ const handleTaskCreated = () => {
                         >
                           View Profile
                         </Button>
+                        <RemoveMemberButton
+        memberId={member.user.id}
+        projectId={selectedProject.id}
+        onRemove={(userId) => {
+          setSelectedProject((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  members: prev.members.filter((m) => m.user.id !== userId),
+                }
+              : prev
+          );
+        }}
+      />
                       </CardFooter>
                     </Card>
                   ))}
