@@ -114,13 +114,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-[#2a2a2a]" />
-              <DropdownMenuItem
-  onClick={handleLogout}
-  className="hover:bg-destructive/10 hover:text-destructive cursor-pointer"
->
-  <LogOut className="mr-2 h-4 w-4" />
-  <span>Log out</span>
-</DropdownMenuItem>
+             
 
 
 
